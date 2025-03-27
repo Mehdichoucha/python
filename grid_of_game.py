@@ -12,7 +12,6 @@ class Bombe:
         self._neighbor_bombs = 0
         self.revealed = False
 
-
     def set_bomb(self):
         self.is_bomb = True
 
@@ -23,7 +22,7 @@ class Bombe:
         self._neighbor_bombs = value
 
     def reveal(self):
-        if self.revealed or self.grille.flags[self.row] [self.col]!= 0:
+        if self.revealed or self.grille.flags[self.row][self.col] != 0:
             return
        
         self.revealed = True
@@ -32,26 +31,25 @@ class Bombe:
         
         if self.is_bomb:
             btn.config(text="💣", bg="red")
-            if messagebox.showerror("Game Over", "You cliked on a bomb !"):
-                self.grille.master.destroy()
-                sys.exit()
+            if messagebox.showerror("Game Over", "You clicked on a bomb !"):
+                self.grille.restart_game()
         else:
             if self._neighbor_bombs > 0:
                 btn.config(text=str(self._neighbor_bombs))
             else:
                 btn.config(text="", bg="pink")
                 self.reveal_adjacent()
+            
+            if self.grille.check_win():
+                if messagebox.showinfo("Congracts", "You won!"):
+                    self.grille.restart_game()
 
     def reveal_adjacent(self):
         directions = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
-
         for dr, dc in directions:
             nr, nc = self.row + dr, self.col + dc
             if 0 <= nr < self.grille.rows and 0 <= nc < self.grille.columns:
                 self.grille.bombs[nr][nc].reveal()
-
-    
-    
 
 class Grille:
     def __init__(self, master, rows=9, columns=9, width=800, height=400):
@@ -61,9 +59,6 @@ class Grille:
         Grid.rowconfigure(master, 0, weight=1)
         Grid.columnconfigure(master, 0, weight=1)
         
-
-        
-
         self.frame = Frame(master)
         self.frame.grid(row=0, column=0, sticky=N+S+E+W)
 
@@ -78,15 +73,16 @@ class Grille:
     def create_grid(self):
         for widget in self.frame.winfo_children():
             widget.destroy()
+            
         self.buttons = []
         self.bombs = []
         self.flags = [[0 for _ in range(self.columns)] for _ in range(self.rows)]
-
 
         for row_index in range(self.rows):
             Grid.rowconfigure(self.frame, row_index, weight=1)
             button_row = []
             bomb_row = []
+            
             for col_index in range(self.columns):
                 Grid.columnconfigure(self.frame, col_index, weight=1)
 
@@ -100,15 +96,12 @@ class Grille:
                 btn.grid(row=row_index, column=col_index, sticky=N+S+E+W)
                 
                 button_row.append(btn)
-                
             
             self.buttons.append(button_row)
             self.bombs.append(bomb_row)
-    
-
 
     def on_click(self, row, col):
-        if not hasattr(self, 'bombs_placed'):  # Premier clic
+        if not hasattr(self, 'bombs_placed'):
             self.bombs_placed = True
             if self.rows == 9 and self.columns == 9:
                 self.place_bombs(10, row, col)
@@ -121,10 +114,9 @@ class Grille:
             self.bombs[row][col].reveal()
 
     def toggle_flag(self, row, col):
-        """Alternates flag (🚩), question mark (❓) and blank. """
-        if self.bombs[row][col].revealed: 
+        if self.bombs[row][col].revealed:
             return
-        
+            
         btn = self.buttons[row][col]
         self.flags[row][col] = (self.flags[row][col] + 1) % 3
 
@@ -136,21 +128,22 @@ class Grille:
             btn.config(text="")
     
     def place_bombs(self, bomb_count, first_click_row, first_click_col):
-
-        # Place the bombs randomly
         bombs_placed = 0
+        
         while bombs_placed < bomb_count:
             row = randint(0, self.rows-1)
             col = randint(0, self.columns-1)
+            
             if (abs(row - first_click_row) <= 1 and abs(col - first_click_col) <= 1):
                 continue
-
+                
             if not self.bombs[row][col].is_bomb:
                 self.bombs[row][col].set_bomb()
                 bombs_placed += 1
+                
         self.calculate_neighbors()
+
     def calculate_neighbors(self):
-        # Calculate neighbor bombs
         for row in range(self.rows):
             for col in range(self.columns):
                 if not self.bombs[row][col].is_bomb:
@@ -161,11 +154,23 @@ class Grille:
                                 count += 1
                     self.bombs[row][col].set_neighbor_bombs(count)
 
-        
-
     def update_grid(self, rows, columns):
         self.rows = rows
         self.columns = columns
+        if hasattr(self, 'bombs_placed'):
+            del self.bombs_placed
+        self.create_grid()
+
+    def check_win(self):
+        
+        for row in range(self.rows):
+            for col in range(self.columns):
+                if not self.bombs[row][col].is_bomb and not self.bombs[row][col].revealed:
+                    return False
+        return True
+
+    def restart_game(self):
+        
         if hasattr(self, 'bombs_placed'):
             del self.bombs_placed
         self.create_grid()
@@ -181,8 +186,6 @@ def set_difficulty(grille, difficulty):
 def quit_game():
     root.destroy()
     sys.exit()
-def restart_game():
-    grille.update_grid(grille.rows, grille.columns)
 
 if __name__ == "__main__":
     root = Tk()
@@ -197,8 +200,7 @@ if __name__ == "__main__":
     menu_bar.add_cascade(label="Difficulty", menu=difficulty_menu)
     
     menu_bar.add_command(label="Quit", command=quit_game)
-    menu_bar.add_command(label="Restart", command=restart_game)
-    
+    menu_bar.add_command(label="Restart", command=grille.restart_game)
     
     root.config(menu=menu_bar)
     root.mainloop()
