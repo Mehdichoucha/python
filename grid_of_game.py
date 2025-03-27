@@ -23,7 +23,7 @@ class Bombe:
         self._neighbor_bombs = value
 
     def reveal(self):
-        if self.revealed or self.grille.flags[self.row, self.col]!= 0:
+        if self.revealed or self.grille.flags[self.row] [self.col]!= 0:
             return
        
         self.revealed = True
@@ -60,6 +60,9 @@ class Grille:
         self.master.geometry(f"{width}x{height}")
         Grid.rowconfigure(master, 0, weight=1)
         Grid.columnconfigure(master, 0, weight=1)
+        
+
+        
 
         self.frame = Frame(master)
         self.frame.grid(row=0, column=0, sticky=N+S+E+W)
@@ -68,7 +71,7 @@ class Grille:
         self.columns = columns
         self.buttons = []
         self.bombs = []
-        self.flags = {} 
+        self.flags = []
 
         self.create_grid()
 
@@ -77,7 +80,8 @@ class Grille:
             widget.destroy()
         self.buttons = []
         self.bombs = []
-        self.flags = {} 
+        self.flags = [[0 for _ in range(self.columns)] for _ in range(self.rows)]
+
 
         for row_index in range(self.rows):
             Grid.rowconfigure(self.frame, row_index, weight=1)
@@ -96,43 +100,53 @@ class Grille:
                 btn.grid(row=row_index, column=col_index, sticky=N+S+E+W)
                 
                 button_row.append(btn)
-                self.flags[(row_index, col_index)] = 0
+                
             
             self.buttons.append(button_row)
             self.bombs.append(bomb_row)
+    
+
 
     def on_click(self, row, col):
-        if self.flags[row, col] ==0:
+        if not hasattr(self, 'bombs_placed'):  # Premier clic
+            self.bombs_placed = True
+            if self.rows == 9 and self.columns == 9:
+                self.place_bombs(10, row, col)
+            elif self.rows == 16 and self.columns == 16:
+                self.place_bombs(40, row, col)
+            elif self.rows == 16 and self.columns == 30:
+                self.place_bombs(99, row, col)
+    
+        if self.flags[row][col] == 0:
             self.bombs[row][col].reveal()
 
     def toggle_flag(self, row, col):
         """Alternates flag (🚩), question mark (❓) and blank. """
         btn = self.buttons[row][col]
-        self.flags[(row, col)] = (self.flags[(row, col)] + 1) % 3
+        self.flags[row][col] = (self.flags[row][col] + 1) % 3
 
-        if self.flags[(row, col)] == 1:
+        if self.flags[row] [col] == 1:
             btn.config(text="🚩", fg="green")
-        elif self.flags[(row, col)] == 2:
+        elif self.flags[row] [col] == 2:
             btn.config(text="❓", fg="blue")
         else:
             btn.config(text="")
     
-    def place_bombs(self, bomb_count):
-
-        for row in self.bombs:
-            for bomb in row:
-                bomb.is_bomb = False
-                bomb.revealed = False
+    def place_bombs(self, bomb_count, first_click_row, first_click_col):
 
         # Place the bombs randomly
         bombs_placed = 0
         while bombs_placed < bomb_count:
             row = randint(0, self.rows-1)
             col = randint(0, self.columns-1)
+            if (abs(row - first_click_row) <= 1 and abs(col - first_click_col) <= 1):
+                continue
+
             if not self.bombs[row][col].is_bomb:
                 self.bombs[row][col].set_bomb()
                 bombs_placed += 1
-
+        self.calculate_neighbors()
+    def calculate_neighbors(self):
         # Calculate neighbor bombs
         for row in range(self.rows):
             for col in range(self.columns):
@@ -144,17 +158,14 @@ class Grille:
                                 count += 1
                     self.bombs[row][col].set_neighbor_bombs(count)
 
+        
+
     def update_grid(self, rows, columns):
         self.rows = rows
         self.columns = columns
+        if hasattr(self, 'bombs_placed'):
+            del self.bombs_placed
         self.create_grid()
-
-        if rows == 9 and columns == 9:
-            self.place_bombs(10)
-        elif rows == 16 and columns == 16:
-            self.place_bombs(40)
-        elif rows == 16 and columns == 30:
-            self.place_bombs(99)
 
 def set_difficulty(grille, difficulty):
     if difficulty == "Easy":
@@ -169,6 +180,7 @@ def quit_game():
     sys.exit()
 def restart_game():
     grille.update_grid(grille.rows, grille.columns)
+
 if __name__ == "__main__":
     root = Tk()
     grille = Grille(root)
@@ -183,6 +195,7 @@ if __name__ == "__main__":
     
     menu_bar.add_command(label="Quit", command=quit_game)
     menu_bar.add_command(label="Restart", command=restart_game)
+    
     
     root.config(menu=menu_bar)
     root.mainloop()
