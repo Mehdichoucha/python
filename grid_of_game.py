@@ -28,7 +28,7 @@ class Bombe:
        
         self.revealed = True
         btn = self.grille.buttons[self.row][self.col]
-        btn.config(state=DISABLED)
+        btn.config(state=DISABLED, relief=SUNKEN)
         
         if self.is_bomb:
             btn.config(text="💣", bg="red")
@@ -122,12 +122,15 @@ class Grille:
 
     def toggle_flag(self, row, col):
         """Alternates flag (🚩), question mark (❓) and blank. """
+        if self.bombs[row][col].revealed: 
+            return
+        
         btn = self.buttons[row][col]
         self.flags[row][col] = (self.flags[row][col] + 1) % 3
 
-        if self.flags[row] [col] == 1:
+        if self.flags[row][col] == 1:
             btn.config(text="🚩", fg="green")
-        elif self.flags[row] [col] == 2:
+        elif self.flags[row][col] == 2:
             btn.config(text="❓", fg="blue")
         else:
             btn.config(text="")
