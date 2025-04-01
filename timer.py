@@ -1,20 +1,19 @@
-import tkinter
+import tkinter  as tk 
+my_w = tk.Tk()
+my_w.geometry("350x170")  
 
-window = tkinter.Tk()
+counter = 0 
+def my_time():
+    global counter
+    counter = counter + 1
+    if counter < 0:
+        return
+    
+    l1.config(text = str(counter))
+    l1.after(1000, my_time) 
+	
+l1 = tk.Label(my_w, font = ('times', 10), width = 20)
+l1.grid(row = 1, column = 1, padx = 50, pady = 30)
 
-limit = 999999999999999999999999
-score = 0
-
-def update():
-    global score
-    score += 1
-    ScoreL.configure(text=score)
-    if score < limit:
-        # schedule next update 1 second later
-        window.after(1000, update)
-
-ScoreL = tkinter.Label(window, text=score)
-ScoreL.pack()
-
-window.after(1000, update) # start the update 1 second later
-window.mainloop()
+my_time() 
+my_w.mainloop()    
