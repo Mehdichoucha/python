@@ -4,8 +4,8 @@ from random import randint
 import sys
 
 class Bombe:
-    def __init__(self, grille, row, col):
-        self.grille = grille
+    def __init__(self, game_grid, row, col):
+        self.game_grid = game_grid
         self.row = row
         self.col = col
         self.is_bomb = False
@@ -22,35 +22,33 @@ class Bombe:
         self._neighbor_bombs = value
 
     def reveal(self):
-        if self.revealed or self.grille.flags[self.row][self.col] != 0:
+        if self.revealed or self.game_grid.flags[self.row][self.col] != 0:
             return
-       
+        
         self.revealed = True
-        btn = self.grille.buttons[self.row][self.col]
+        btn = self.game_grid.buttons[self.row][self.col]  
         btn.config(state=DISABLED, relief=SUNKEN)
         
         if self.is_bomb:
             btn.config(text="💣", bg="red")
             if messagebox.showerror("Game Over", "You clicked on a bomb !"):
-                self.grille.restart_game()
+                self.game_grid.restart_game()
         else:
             if self._neighbor_bombs > 0:
                 btn.config(text=str(self._neighbor_bombs))
             else:
                 btn.config(text="", bg="pink")
-                self.reveal_adjacent()
-            
-            if self.grille.check_win():
-                if messagebox.showinfo("Congracts", "You won!"):
-                    self.grille.restart_game()
+                self.reveal_adjacent()  
 
     def reveal_adjacent(self):
         directions = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
         for dr, dc in directions:
             nr, nc = self.row + dr, self.col + dc
-            if 0 <= nr < self.grille.rows and 0 <= nc < self.grille.columns:
-                self.grille.bombs[nr][nc].reveal()
-
+            if 0 <= nr < self.game_grid.rows and 0 <= nc < self.game_grid.columns:
+                if not self.game_grid.bombs[nr][nc].revealed:
+                    self.game_grid.bombs[nr][nc].reveal()
+                    if self.game_grid.bombs[nr][nc]._neighbor_bombs == 0:
+                        self.game_grid.bombs[nr][nc].reveal_adjacent() 
 class Grille:
     def __init__(self, master, rows=9, columns=9, width=800, height=400):
         self.master = master
@@ -175,13 +173,14 @@ class Grille:
             del self.bombs_placed
         self.create_grid()
 
-def set_difficulty(grille, difficulty):
+def set_difficulty(game_grid, difficulty):   
     if difficulty == "Easy":
-        grille.update_grid(9, 9)
+        game_grid.update_grid(9, 9)
     elif difficulty == "Medium":
-        grille.update_grid(16, 16)
+        game_grid.update_grid(16, 16)
     elif difficulty == "Hard":
-        grille.update_grid(16, 30)
+        game_grid.update_grid(16, 30)
+        
 
 def quit_game():
     root.destroy()
@@ -189,18 +188,18 @@ def quit_game():
 
 if __name__ == "__main__":
     root = Tk()
-    grille = Grille(root)
+    game_grid = Grille(root)
 
     menu_bar = Menu(root)
     
     difficulty_menu = Menu(menu_bar, tearoff=0)
-    difficulty_menu.add_command(label="Easy", command=lambda: set_difficulty(grille, "Easy"))
-    difficulty_menu.add_command(label="Medium", command=lambda: set_difficulty(grille, "Medium"))
-    difficulty_menu.add_command(label="Hard", command=lambda: set_difficulty(grille, "Hard"))
+    difficulty_menu.add_command(label="Easy", command=lambda: set_difficulty(game_grid, "Easy"))
+    difficulty_menu.add_command(label="Medium", command=lambda: set_difficulty(game_grid, "Medium"))
+    difficulty_menu.add_command(label="Hard", command=lambda: set_difficulty(game_grid, "Hard"))
     menu_bar.add_cascade(label="Difficulty", menu=difficulty_menu)
     
     menu_bar.add_command(label="Quit", command=quit_game)
-    menu_bar.add_command(label="Restart", command=grille.restart_game)
+    menu_bar.add_command(label="Restart", command=game_grid.restart_game)
     
     root.config(menu=menu_bar)
     root.mainloop()
