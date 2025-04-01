@@ -3,9 +3,9 @@ from tkinter import messagebox
 from random import randint
 import sys
 
-class Bombe:
-    def __init__(self, grille, row, col):
-        self.grille = grille
+class Bomb:
+    def __init__(self, grid, row, col):
+        self.grid = grid
         self.row = row
         self.col = col
         self.is_bomb = False
@@ -22,17 +22,17 @@ class Bombe:
         self._neighbor_bombs = value
 
     def reveal(self):
-        if self.revealed or self.grille.flags[self.row][self.col] != 0:
+        if self.revealed or self.grid.flags[self.row][self.col] != 0:
             return
 
         self.revealed = True
-        btn = self.grille.buttons[self.row][self.col]
+        btn = self.grid.buttons[self.row][self.col]
         btn.config(state=DISABLED, relief=SUNKEN)
 
         if self.is_bomb:
             btn.config(text="💣", bg="red")
             if messagebox.showerror("Game Over", "You clicked on a bomb !"):
-                self.grille.restart_game()
+                self.grid.restart_game()
         else:
             if self._neighbor_bombs > 0:
                 btn.config(text=str(self._neighbor_bombs))
@@ -40,23 +40,23 @@ class Bombe:
                 btn.config(text="", bg= "#B6D8F2")
                 self.reveal_adjacent() 
 
-            if self.grille.check_win():
+            if self.grid.check_win():
                 if messagebox.showinfo("Congracts", "You won!"):
-                    self.grille.restart_game()
+                    self.grid.restart_game()
 
     def reveal_adjacent(self):
         directions = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
         for dr, dc in directions:
             nr, nc = self.row + dr, self.col + dc
-            if 0 <= nr < self.grille.rows and 0 <= nc < self.grille.columns:
-                adjacent_cell = self.grille.bombs[nr][nc]
+            if 0 <= nr < self.grid.rows and 0 <= nc < self.grid.columns:
+                adjacent_cell = self.grid.bombs[nr][nc]
                 if not adjacent_cell.revealed:
                     adjacent_cell.reveal()
 
-class Grille:
+class Gridgame:
     def __init__(self, master, rows=9, columns=9, width=800, height=400):
         self.master = master
-        self.master.title("Démineur")
+        self.master.title("Minesweeper")
         self.master.geometry(f"{width}x{height}")
         Grid.rowconfigure(master, 0, weight=1)
         Grid.columnconfigure(master, 0, weight=1)
@@ -80,7 +80,6 @@ class Grille:
         self.flags_label = Label(self.master, text=f"Remaining flag : {self.remaining_flags}")
         self.flags_label.grid(row=2, column=0)
 
-        # Ajouter la minuterie
         self.counter = 0
         self.time_label = Label(self.master, font=('times', 10), width=20)
         self.time_label.grid(row=3, column=0)
@@ -102,7 +101,7 @@ class Grille:
             for col_index in range(self.columns):
                 Grid.columnconfigure(self.frame, col_index, weight=1)
 
-                bomb = Bombe(self, row_index, col_index)
+                bomb = Bomb(self, row_index, col_index)
                 bomb_row.append(bomb)
 
                 btn = Button(self.frame, 
@@ -212,13 +211,13 @@ class Grille:
         if not self.check_win():
             self.time_label.after(1000, self.update_timer)
 
-def set_difficulty(grille, difficulty):
+def set_difficulty(grid, difficulty):
     if difficulty == "Easy":
-        grille.update_grid(9, 9)
+        grid.update_grid(9, 9)
     elif difficulty == "Medium":
-        grille.update_grid(16, 16)
+        grid.update_grid(16, 16)
     elif difficulty == "Hard":
-        grille.update_grid(16, 30)
+        grid.update_grid(16, 30)
 
 def quit_game():
     root.destroy()
@@ -226,18 +225,18 @@ def quit_game():
 
 if __name__ == "__main__":
     root = Tk()
-    grille = Grille(root)
+    grid = Gridgame(root)
 
     menu_bar = Menu(root)
     
     difficulty_menu = Menu(menu_bar, tearoff=0)
-    difficulty_menu.add_command(label="Easy", command=lambda: set_difficulty(grille, "Easy"))
-    difficulty_menu.add_command(label="Medium", command=lambda: set_difficulty(grille, "Medium"))
-    difficulty_menu.add_command(label="Hard", command=lambda: set_difficulty(grille, "Hard"))
+    difficulty_menu.add_command(label="Easy", command=lambda: set_difficulty(grid, "Easy"))
+    difficulty_menu.add_command(label="Medium", command=lambda: set_difficulty(grid, "Medium"))
+    difficulty_menu.add_command(label="Hard", command=lambda: set_difficulty(grid, "Hard"))
     menu_bar.add_cascade(label="Difficulty", menu=difficulty_menu)
     
     menu_bar.add_command(label="Quit", command=quit_game)
-    menu_bar.add_command(label="Restart", command=grille.restart_game)
+    menu_bar.add_command(label="Restart", command=grid.restart_game)
     
     root.config(menu=menu_bar)
     root.mainloop()
